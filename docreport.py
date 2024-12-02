@@ -9,9 +9,6 @@ import tempfile
 
 app = Flask(__name__)
 
-# Replace with your API keys
-ASSEMBLYAI_API_KEY = '94e9039216c64de19cf828cf56eff026'
-
 # Paths for the Word template and output file
 TEMPLATE_PATH = "report.docx"  # Template file path
 print(os.getcwd())
