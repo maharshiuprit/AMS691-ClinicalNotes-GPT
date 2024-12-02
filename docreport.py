@@ -11,7 +11,6 @@ app = Flask(__name__)
 
 # Paths for the Word template and output file
 TEMPLATE_PATH = "report.docx"  # Template file path
-print(os.getcwd())
 OUTPUT_PATH = os.path.join(os.getcwd(), "tmp", "populated_report.docx")
 
 
@@ -161,17 +160,6 @@ def process_audio():
 
         # Step 4: Use ChatGPT to extract key-value pairs
         key_value_pairs = process_with_claude(transcribed_text)
-
-        # # Step 5: Populate the Word document
-        # populate_docx(TEMPLATE_PATH, OUTPUT_PATH, key_value_pairs)
-
-        # # Step 6: Send the generated document back
-        # if os.path.exists(OUTPUT_PATH):
-        #     print(f"File ready to send: {OUTPUT_PATH}")
-        #     return send_file(OUTPUT_PATH, as_attachment=True)
-        # else:
-        #     print("File not found for sending.")
-        #     return jsonify({"error": "Generated file not found"}), 500
 
         populate_docx(TEMPLATE_PATH, OUTPUT_PATH, key_value_pairs)
         print(f"Document saved at {OUTPUT_PATH}")
