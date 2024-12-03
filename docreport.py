@@ -12,6 +12,7 @@ app = Flask(__name__)
 # Paths for the Word template and output file
 TEMPLATE_PATH = "report.docx"  # Template file path
 OUTPUT_PATH = os.path.join(os.getcwd(), "tmp", "populated_report.docx")
+ASSEMBLYAI_API_KEY=os.getenv("ASSEMBLYAI_API_KEY")
 
 
 # ChatGPT integration
