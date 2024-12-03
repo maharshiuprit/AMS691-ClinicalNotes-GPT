@@ -6,6 +6,7 @@ import anthropic
 import os
 import json
 import tempfile
+import google.generativeai as genai
 
 app = Flask(__name__)
 
@@ -13,6 +14,7 @@ app = Flask(__name__)
 TEMPLATE_PATH = "report.docx"  # Template file path
 OUTPUT_PATH = os.path.join(os.getcwd(), "tmp", "populated_report.docx")
 ASSEMBLYAI_API_KEY=os.getenv("ASSEMBLYAI_API_KEY")
+GEMINI_API_KEY=os.getenv("GEMINI_API_KEY")
 
 
 # ChatGPT integration
@@ -43,6 +45,42 @@ ASSEMBLYAI_API_KEY=os.getenv("ASSEMBLYAI_API_KEY")
 
 #     except Exception as e:
 #         raise RuntimeError(f"Error processing text with ChatGPT: {str(e)}")
+
+def process_with_gemini(transcribed_text):
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel("gemini-1.5-pro")
+    try:
+        response = model.generate_content(f"The following text is a transcription of a meeting. Extract key information "
+                "and return it in the form of a JSON dictionary. The keys should include:\n"
+                " - 'doctor'\n"
+                " - 'Date'\n"
+                " - 'specialization'\n"
+                " - 'patient'\n"
+                " - 'DateBd'\n"
+                " - 'medNumber'\n"
+                " - 'ihi'\n"
+                " - 'patientPhone'\n"
+                " - 'email'\n"
+                " - 'assessment' (nested object with presenting_complaint, location, onset, duration, patient_age, patient_gender)\n"
+                " - 'diagnosis'\n"
+                " - 'prescription'\n\n"
+                f"Here is the transcription:\n\n{transcribed_text}\n\n"
+                "Return only the JSON object without any additional text or explanation.\n\n"
+                "Please return only the object with braces and not other additional text like json so that i can directly process it using json loads")
+
+        print("Raw Response:", response.text)
+
+        try:
+            cleaned_input = response.text.strip("```json").rstrip("```").strip()
+            cleaned_input = cleaned_input.replace('```', '')
+            # Parse as JSON
+            return json.loads(cleaned_input)
+        
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON format: {e}")
+
+    except Exception as e:
+        raise RuntimeError(f"Error processing text with Gemini: {str(e)}")
 
 def process_with_claude(transcribed_text):
     client = anthropic.Anthropic()
@@ -160,7 +198,7 @@ def process_audio():
         print(transcribed_text)
 
         # Step 4: Use ChatGPT to extract key-value pairs
-        key_value_pairs = process_with_claude(transcribed_text)
+        key_value_pairs = process_with_gemini(transcribed_text)
 
         populate_docx(TEMPLATE_PATH, OUTPUT_PATH, key_value_pairs)
         print(f"Document saved at {OUTPUT_PATH}")
