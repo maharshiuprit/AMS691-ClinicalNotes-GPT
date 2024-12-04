@@ -26,27 +26,33 @@ app.add_middleware(
 # Paths for the Word template and output file
 TEMPLATE_PATH = "report.docx"  # Template file path
 OUTPUT_PATH = os.path.join(os.getcwd(), "tmp", "populated_report.docx")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
 def process_with_gemini(transcribed_text):
+    print("Inside Gemini processing")
+
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel("gemini-1.5-pro")
     try:
         response = model.generate_content(f"The following text is a transcription of a meeting. Extract key information "
                 "and return it in the form of a JSON dictionary. The keys should include:\n"
-                " - 'doctor'\n"
-                " - 'Date'\n"
-                " - 'specialization'\n"
-                " - 'patient'\n"
-                " - 'DateBd'\n"
-                " - 'medNumber'\n"
-                " - 'ihi'\n"
-                " - 'patientPhone'\n"
-                " - 'email'\n"
-                " - 'assessment' (GIVE THIS IN BULLET POINT FORMAT)\n"
-                " - 'diagnosis'\n"
-                " - 'prescription'\n\n"
-                f"Here is the transcription:\n\n{transcribed_text}\n\n"
-                "Return only the JSON object without any additional text or explanation.\n\n"
-                "Please return only the object with braces and not other additional text like json so that i can directly process it using json loads")
+                " - 'doctor' (Doctor's name)\n"
+            " - 'visit_date' (Date of visit to doctor)\n"
+            " - 'specialization' (Specialization of the doctor)\n"
+            " - 'patient' (Patient's name)\n"
+            " - 'birth_date' (Patient's Date of birth)\n"
+            " - 'medNumber' (Patient's medical number)\n"
+            " - 'ihi' (Patient's Individual Healthcare Identifier)\n"
+            " - 'patientPhone' (Patient's Phone number)\n"
+            " - 'email' (Patient's email)\n"
+            " - 'medical_history' (Medical History of the patient) (GIVE THIS IN BULLET POINT FORMAT)\n"
+            " - 'assessment' (Current assessment of the patient from Doctor's POV) (GIVE THIS IN BULLET POINT FORMAT)\n"
+            " - 'diagnosis' (Diagnosis of the disease) (If there is a suggested diagnosis that you can interpret, mention this as suggestion by AI)\n"
+            " - 'prescription' (Medications prescribed by the doctor) (If there is a suggested prescription that you can interpret, mention this as suggestion by AI)\n\n"
+            f"Here is the transcription:\n\n{transcribed_text}\n\n"
+            "Return only the JSON object without any additional text or explanation.\n\n"
+            "If a key is not available, return as Unknown\n"
+            "Please return only the object with braces and not other additional text like json so that i can directly process it using json loads")
 
         print("Raw Response:", response.text)
 
@@ -72,20 +78,22 @@ def process_with_claude(transcribed_text):
         prompt = (
             f"{anthropic.HUMAN_PROMPT} The following text is a transcription of a meeting. Extract key information "
             "and return it in the form of a JSON dictionary. The keys should include:\n"
-            " - 'doctor'\n"
-            " - 'Date'\n"
-            " - 'specialization'\n"
-            " - 'patient'\n"
-            " - 'DateBd'\n"
-            " - 'medNumber'\n"
-            " - 'ihi'\n"
-            " - 'patientPhone'\n"
-            " - 'email'\n"
-            " - 'assessment' (GIVE THIS IN BULLET POINT FORMAT)\n"
-            " - 'diagnosis'\n"
-            " - 'prescription'\n\n"
+            " - 'doctor' (Doctor's name)\n"
+            " - 'visit_date' (Date of visit to doctor)\n"
+            " - 'specialization' (Specialization of the doctor)\n"
+            " - 'patient' (Patient's name)\n"
+            " - 'birth_date' (Patient's Date of birth)\n"
+            " - 'medNumber' (Patient's medical number)\n"
+            " - 'ihi' (Patient's Individual Healthcare Identifier)\n"
+            " - 'patientPhone' (Patient's Phone number)\n"
+            " - 'email' (Patient's email)\n"
+            " - 'medical_history' (Medical History of the patient) (GIVE THIS IN BULLET POINT FORMAT)\n"
+            " - 'assessment' (Current assessment of the patient from Doctor's POV) (GIVE THIS IN BULLET POINT FORMAT)\n"
+            " - 'diagnosis' (Diagnosis of the disease) (If there is a suggested diagnosis that you can interpret, mention this as suggestion by AI)\n"
+            " - 'prescription' (Medications prescribed by the doctor) (If there is a suggested prescription that you can interpret, mention this as suggestion by AI)\n\n"
             f"Here is the transcription:\n\n{transcribed_text}\n\n"
             "Return only the JSON object without any additional text or explanation.\n\n"
+            "If a key is not available, return as Unknown\n"
             f"{anthropic.AI_PROMPT}"
         )
 
@@ -116,18 +124,33 @@ def process_with_claude(transcribed_text):
 def populate_docx(template_path, output_path, data):
     try:
         doc = Document(template_path)
+
+        def format_list_as_bullets(items):
+            return '\n'.join([f"• {item}" for item in items])
+        
+        # Replace placeholders in paragraphs
         for paragraph in doc.paragraphs:
             for key, value in data.items():
                 placeholder = f"{{{{{key}}}}}"  # Placeholder format: {{key}}
+                if isinstance(value, list):
+                    # Join list items with newlines or bullets
+                    value = format_list_as_bullets(value)
                 if placeholder in paragraph.text:
                     paragraph.text = paragraph.text.replace(placeholder, str(value))
+        
+        # Replace placeholders in tables
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for key, value in data.items():
                         placeholder = f"{{{{{key}}}}}"
+                        if isinstance(value, list):
+                            # Join list items with newlines or bullets
+                            value = format_list_as_bullets(value)
                         if placeholder in cell.text:
                             cell.text = cell.text.replace(placeholder, str(value))
+        
+        # Save the modified document
         doc.save(output_path)
         print(f"Document saved at {output_path}")
     except Exception as e:
@@ -135,8 +158,19 @@ def populate_docx(template_path, output_path, data):
         raise
 
 
+def flatten_data(data, parent_key='', sep='.'):
+    items = []
+    for k, v in data.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_data(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
 @app.post("/process-audio")
-async def process_audio(audio_file: UploadFile):
+async def process_audio(audio_file: UploadFile, ai_model: str):
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
             temp_audio.write(audio_file.file.read())
@@ -166,7 +200,12 @@ async def process_audio(audio_file: UploadFile):
         print(transcribed_text)
 
         # Step 4: Use ChatGPT to extract key-value pairs
-        key_value_pairs = process_with_claude(transcribed_text)
+        if ai_model=="gemini":
+            key_value_pairs = process_with_gemini(transcribed_text)
+        else:
+            key_value_pairs = process_with_claude(transcribed_text)
+
+        key_value_pairs = flatten_data(key_value_pairs)
 
         populate_docx(TEMPLATE_PATH, OUTPUT_PATH, key_value_pairs)
         print(f"Document saved at {OUTPUT_PATH}")
