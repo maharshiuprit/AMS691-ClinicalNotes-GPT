@@ -10,7 +10,6 @@ import os
 import json
 import tempfile
 
-ASSEMBLYAI_API_KEY = "94e9039216c64de19cf828cf56eff026"
 
 app = FastAPI()
 
@@ -64,7 +63,7 @@ def process_with_gemini(transcribed_text):
     
 # Claude integration
 def process_with_claude(transcribed_text):
-    client = anthropic.Anthropic(api_key="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")
+    client = anthropic.Anthropic()
     try:
         print("Inside Claude processing")
 
