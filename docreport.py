@@ -1,50 +1,70 @@
-from flask import Flask, request, jsonify, send_file
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from docx import Document
 import requests
-import openai
 import anthropic
+import google.generativeai as genai
 import os
 import json
 import tempfile
 
-app = Flask(__name__)
+ASSEMBLYAI_API_KEY = "94e9039216c64de19cf828cf56eff026"
+
+app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust origins as needed
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Paths for the Word template and output file
 TEMPLATE_PATH = "report.docx"  # Template file path
 OUTPUT_PATH = os.path.join(os.getcwd(), "tmp", "populated_report.docx")
+def process_with_gemini(transcribed_text):
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel("gemini-1.5-pro")
+    try:
+        response = model.generate_content(f"The following text is a transcription of a meeting. Extract key information "
+                "and return it in the form of a JSON dictionary. The keys should include:\n"
+                " - 'doctor'\n"
+                " - 'Date'\n"
+                " - 'specialization'\n"
+                " - 'patient'\n"
+                " - 'DateBd'\n"
+                " - 'medNumber'\n"
+                " - 'ihi'\n"
+                " - 'patientPhone'\n"
+                " - 'email'\n"
+                " - 'assessment' (nested object with presenting_complaint, location, onset, duration, patient_age, patient_gender)\n"
+                " - 'diagnosis'\n"
+                " - 'prescription'\n\n"
+                f"Here is the transcription:\n\n{transcribed_text}\n\n"
+                "Return only the JSON object without any additional text or explanation.\n\n"
+                "Please return only the object with braces and not other additional text like json so that i can directly process it using json loads")
 
+        print("Raw Response:", response.text)
 
-# ChatGPT integration
-# def process_with_chatgpt(transcribed_text):
-#     client = openai.OpenAI()
-#     try:
-#         print("inside gpt")
-#         # Define the prompt
-#         prompt = (
-#             "The following text is a transcription of a meeting. Extract key information "
-#             "and return it in the form of pre-defined key-value pairs (JSON format). Keys should include 'doctor', "
-#             "'Date', 'specialization', 'patient', 'DateBd', 'medNumber', 'ihi', 'patientPhone', 'email', "
-#             "'assessment', 'diagnosis', and 'prescription':\n\n"
-#             f"{transcribed_text}"
-#         )
+        try:
+            cleaned_input = response.text.strip("```json").rstrip("```").strip()
+            cleaned_input = cleaned_input.replace('```', '')
+            # Parse as JSON
+            return json.loads(cleaned_input)
+        
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON format: {e}")
 
-#         # Call the ChatCompletion API for GPT-4
-#         response = client.chat.completions.create(
-#             model="gpt-4",  # Use GPT-4
-#             messages=[
-#                 {"role": "system", "content": "You are a helpful assistant."},
-#                 {"role": "user", "content": prompt}
-#             ],
-#         )
-
-#         # Extract the assistant's message content
-#         return response.choices[0].message.content
-
-#     except Exception as e:
-#         raise RuntimeError(f"Error processing text with ChatGPT: {str(e)}")
-
+    except Exception as e:
+        raise RuntimeError(f"Error processing text with Gemini: {str(e)}")
+    
+# Claude integration
 def process_with_claude(transcribed_text):
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(api_key="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")
     try:
         print("Inside Claude processing")
 
@@ -74,7 +94,7 @@ def process_with_claude(transcribed_text):
             model="claude-3-5-sonnet-20241022",
             max_tokens=1024,
             messages=[
-                {"role": "user", "content":prompt }
+                {"role": "user", "content": prompt}
             ]
         ).content[0].text
 
@@ -90,6 +110,7 @@ def process_with_claude(transcribed_text):
 
     except Exception as e:
         raise RuntimeError(f"Error processing text with Claude: {str(e)}")
+
 
 # Function to populate the Word document
 def populate_docx(template_path, output_path, data):
@@ -114,17 +135,16 @@ def populate_docx(template_path, output_path, data):
         raise
 
 
-@app.route('/process-audio', methods=['POST'])
-def process_audio():
+@app.post("/process-audio")
+async def process_audio(audio_file: UploadFile):
     try:
-        if 'audio_file' not in request.files:
-            return jsonify({'error': 'Audio file is required'}), 400
-        audio_file = request.files['audio_file']
-        audio_file.save('temp_audio_file.mp3')
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
+            temp_audio.write(audio_file.file.read())
+            temp_audio_path = temp_audio.name
 
         # Step 2: Upload the audio file to AssemblyAI
         headers = {'authorization': ASSEMBLYAI_API_KEY}
-        with open('temp_audio_file.mp3', 'rb') as f:
+        with open(temp_audio_path, 'rb') as f:
             response = requests.post(
                 'https://api.assemblyai.com/v2/upload',
                 headers=headers,
@@ -154,25 +174,24 @@ def process_audio():
                 transcribed_text = result_json['text']
                 break
             elif result_json['status'] == 'failed':
-                return jsonify({'error': 'Transcription failed'}), 500
+                raise HTTPException(status_code=500, detail="Transcription failed")
 
         print(transcribed_text)
 
-        # Step 4: Use ChatGPT to extract key-value pairs
+        # Step 4: Use Claude to extract key-value pairs
         key_value_pairs = process_with_claude(transcribed_text)
 
         populate_docx(TEMPLATE_PATH, OUTPUT_PATH, key_value_pairs)
-        print(f"Document saved at {OUTPUT_PATH}")
-        # Comment out the send_file line for now
-        # return send_file(OUTPUT_PATH, as_attachment=True)
-        return jsonify({"message": f"File saved at {OUTPUT_PATH}"})
 
+        # Return the generated Word document
+        return FileResponse(
+            OUTPUT_PATH,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename="generated_report.docx",
+        )
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
-        if os.path.exists('temp_audio_file.mp3'):
-            os.remove('temp_audio_file.mp3')
-
-if __name__ == '__main__':
-    app.run(debug=True)
+        if os.path.exists(temp_audio_path):
+            os.remove(temp_audio_path)

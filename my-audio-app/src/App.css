@@ -1,0 +1,57 @@
+/* src/App.css */
+
+.App {
+  text-align: center;
+  font-family: Arial, sans-serif;
+  padding: 20px;
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+  margin-bottom: 40px;
+}
+
+.upload-form {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.upload-form h2 {
+  margin-bottom: 20px;
+}
+
+.upload-form form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload-form input[type="file"] {
+  margin-bottom: 20px;
+}
+
+.upload-form button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.upload-form button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.upload-form button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
