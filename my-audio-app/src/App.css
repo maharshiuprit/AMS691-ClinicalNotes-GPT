@@ -4,6 +4,7 @@ body, html, #root {
   margin: 0;
   padding: 0;
   height: 100%;
+  width: 100%;
 }
 
 .App {
@@ -18,6 +19,9 @@ body, html, #root {
   background-color: #2c3e50;
   padding: 20px;
   color: white;
+  display: flex;
+  justify-content: center; /* Centers items horizontally */
+  align-items: center;
 }
 
 .App-header h1 {
@@ -73,6 +77,35 @@ body, html, #root {
   overflow-y: auto;
 }
 
+.model-selection {
+  display: flex; /* Use flexbox for layout */
+  justify-content: center; /* Center items horizontally */
+  align-items: center; /* Center items vertically */
+  gap: 20px; /* Add spacing between the radio button groups */
+  margin-top: 10px; /* Add some space above the section */
+  margin-bottom: 20px; /* Add some space below the section */
+}
+
+.model-selection input[type="radio"] {
+  margin-right: 8px; /* Add space between the radio button and the label */
+  accent-color: #1abc9c; /* Customize the color of the radio button */
+  transform: scale(1.2); /* Slightly enlarge the radio button for better visibility */
+}
+
+.model-selection label {
+  font-size: 16px; /* Adjust the font size */
+  font-weight: 500; /* Slightly bold for better readability */
+  color: #2c3e50; /* Match the color scheme */
+  cursor: pointer; /* Change the cursor to a pointer when hovering over the label */
+  transition: color 0.3s ease; /* Smooth transition for hover effect */
+}
+
+.model-selection label:hover {
+  color: #16a085; /* Change the label color on hover for interactivity */
+}
+
+
+
 .upload-form, .list-reports {
   max-width: 800px;
   margin: 0 auto;
@@ -85,6 +118,7 @@ body, html, #root {
 .upload-form h2, .list-reports h2 {
   margin-bottom: 30px;
   color: #2c3e50;
+  text-align: center;
 }
 
 .upload-form form {
@@ -95,6 +129,8 @@ body, html, #root {
 .upload-form input[type="file"] {
   margin-bottom: 20px;
   font-size: 16px;
+  background-color: black;
+  text-align: center;
 }
 
 .upload-form button {
@@ -177,16 +213,19 @@ body, html, #root {
 .reports-table {
   width: 100%;
   border-collapse: collapse;
+ 
 }
 
 .reports-table th, .reports-table td {
   padding: 12px 15px;
   border-bottom: 1px solid #ddd;
+  background-color: #16a085;
 }
 
 .reports-table th {
   background-color: #f4f4f4;
   text-align: left;
+  background-color: #2980b9;
 }
 
 .reports-table tr:hover {
@@ -195,6 +234,9 @@ body, html, #root {
 
 .reports-table td:last-child {
   text-align: right;
+}
+.reports-table th:last-child {
+  text-align: center;
 }
 
 @media (max-width: 768px) {

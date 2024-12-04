@@ -1,10 +1,15 @@
 // src/App.jsx
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
-import UploadForm from './UploadForm';
-import ListReports from './ListReports';
-import './App.css';
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  NavLink,
+} from "react-router-dom";
+import UploadForm from "./UploadForm";
+import ListReports from "./ListReports";
+import "./App.css";
 
 const App = () => {
   return (
@@ -23,7 +28,7 @@ const App = () => {
               <li>
                 <NavLink
                   to="/upload"
-                  className={({ isActive }) => (isActive ? 'active' : '')}
+                  className={({ isActive }) => (isActive ? "active" : "")}
                 >
                   Upload Content
                 </NavLink>
@@ -31,7 +36,7 @@ const App = () => {
               <li>
                 <NavLink
                   to="/reports"
-                  className={({ isActive }) => (isActive ? 'active' : '')}
+                  className={({ isActive }) => (isActive ? "active" : "")}
                 >
                   List Reports
                 </NavLink>
