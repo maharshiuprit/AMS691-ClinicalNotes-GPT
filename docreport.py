@@ -10,6 +10,7 @@ import os
 import json
 import tempfile
 import assemblyai as aai
+import time
 
 
 app = FastAPI()
@@ -175,6 +176,18 @@ async def process_audio(audio_file: UploadFile, ai_model: str):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
             temp_audio.write(audio_file.file.read())
             temp_audio_path = temp_audio.name
+
+        uploaded_file_name = audio_file.filename
+        audio_file_base = os.path.splitext(uploaded_file_name)[0]  # Strip extension
+        timestamp = time.strftime("%Y%m%d%H%M")  # Current timestamp
+
+        OUTPUT_PATH = os.path.join(
+            os.getcwd(),
+            "tmp",
+            f"Report_{audio_file_base}_{timestamp}.docx"
+        )
+        
+        os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
 
         audio_file = (
                 temp_audio_path
