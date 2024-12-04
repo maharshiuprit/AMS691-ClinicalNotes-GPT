@@ -29,7 +29,8 @@ const UploadForm = () => {
 
     const formData = new FormData();
     formData.append("audio_file", selectedFile);
-
+    formData.append("ai_model", selectedModel);
+    console.log(formData);
     setIsUploading(true);
     toast.info("Uploading and processing the audio file...");
 
@@ -42,12 +43,6 @@ const UploadForm = () => {
             "Content-Type": "multipart/form-data",
           },
           responseType: "blob", // Important for handling binary data
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            // You can use this to display upload progress
-          },
         }
       );
 

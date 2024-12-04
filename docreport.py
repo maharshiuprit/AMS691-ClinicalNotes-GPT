@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException,Form
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -171,7 +171,7 @@ def flatten_data(data, parent_key='', sep='.'):
 
 
 @app.post("/process-audio")
-async def process_audio(audio_file: UploadFile, ai_model: str):
+async def process_audio(audio_file: UploadFile, ai_model: str = Form(...)):
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
             temp_audio.write(audio_file.file.read())
