@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException,Form
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -12,7 +12,6 @@ import tempfile
 import assemblyai as aai
 import time
 
-
 app = FastAPI()
 
 # Add CORS middleware
@@ -25,9 +24,12 @@ app.add_middleware(
     expose_headers=["Content-Disposition"]
 )
 
-# Paths for the Word template and output file
+# Paths for the Word template and reports directory
 TEMPLATE_PATH = "report.docx"  # Template file path
+REPORTS_DIR = os.path.join(os.getcwd(), "tmp")  # Reports directory path
+os.makedirs(REPORTS_DIR, exist_ok=True)  # Ensure the directory exists
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
 
 def process_with_gemini(transcribed_text):
     print("Inside Gemini processing")
@@ -71,7 +73,7 @@ def process_with_gemini(transcribed_text):
     
 # Claude integration
 def process_with_claude(transcribed_text):
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(   )
     try:
         print("Inside Claude processing")
 
@@ -241,3 +243,53 @@ async def process_audio(audio_file: UploadFile, ai_model: str = Form(...)):
     finally:
         if os.path.exists(temp_audio_path):
             os.remove(temp_audio_path)
+
+
+
+@app.get("/list-reports")
+async def list_reports():
+    try:
+        # Ensure the reports directory exists
+        if not os.path.exists(REPORTS_DIR):
+            return JSONResponse(content={"reports": []})
+
+        # List all .docx files in the reports directory
+        files = []
+        for filename in os.listdir(REPORTS_DIR):
+            if filename.endswith(".docx"):
+                file_path = os.path.join(REPORTS_DIR, filename)
+                if os.path.isfile(file_path):
+                    # Get the file's modification time
+                    modified_time = os.path.getmtime(file_path)
+                    files.append({
+                        "name": filename,
+                        "modified_time": modified_time
+                    })
+
+        # Sort files by modification time (most recent first)
+        files.sort(key=lambda x: x["modified_time"], reverse=True)
+
+        # Return the list of files
+        return JSONResponse(content={"reports": files})
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@app.get("/download-report/{filename}")
+async def download_report(filename: str):
+    try:
+        # Sanitize the filename to prevent directory traversal
+        safe_filename = os.path.basename(filename)
+        file_path = os.path.join(REPORTS_DIR, safe_filename)
+
+        # Check if the file exists
+        if not os.path.isfile(file_path):
+            return JSONResponse(content={"error": "File not found"}, status_code=404)
+
+        # Return the file
+        return FileResponse(
+            path=file_path,
+            filename=safe_filename,
+            media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)

@@ -1,22 +1,22 @@
 // src/ListReports.jsx
 
-import React, { useState, useEffect } from 'react';
-import Button from '@mui/material/Button';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import Button from "@mui/material/Button";
+import { format } from "date-fns";
 
 const ListReports = () => {
   const [reports, setReports] = useState([]);
 
   useEffect(() => {
-    // Fetch the list of reports from the backend API (mocked here)
-    // You can replace this with an actual API call
+    // Fetch the list of reports from the backend API
     const fetchReports = async () => {
-      // Mock data
-      const data = [
-        { id: 1, name: 'Report_2023-10-01.docx', date: '2023-10-01' },
-        { id: 2, name: 'Report_2023-10-02.docx', date: '2023-10-02' },
-        // Add more mock reports
-      ];
-      setReports(data);
+      try {
+        const response = await axios.get("http://localhost:8000/list-reports");
+        setReports(response.data.reports);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+      }
     };
 
     fetchReports();
@@ -24,8 +24,10 @@ const ListReports = () => {
 
   const handleDownload = (report) => {
     // Implement the download functionality
-    console.log(`Downloading report: ${report.name}`);
-    // You can make an API call to download the report
+    const url = `http://localhost:8000/download-report/${encodeURIComponent(
+      report.name
+    )}`;
+    window.open(url, "_blank");
   };
 
   return (
@@ -38,15 +40,20 @@ const ListReports = () => {
           <thead>
             <tr>
               <th>Report Name</th>
-              <th>Date Generated</th>
+              <th>Date Modified</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            {reports.map((report) => (
-              <tr key={report.id}>
+            {reports.map((report, index) => (
+              <tr key={index}>
                 <td>{report.name}</td>
-                <td>{report.date}</td>
+                <td>
+                  {format(
+                    new Date(report.modified_time * 1000),
+                    "yyyy-MM-dd HH:mm:ss"
+                  )}
+                </td>
                 <td>
                   <Button
                     variant="contained"
