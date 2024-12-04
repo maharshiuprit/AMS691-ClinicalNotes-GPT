@@ -7,6 +7,7 @@ import os
 import json
 import tempfile
 import google.generativeai as genai
+import assemblyai as aai
 
 app = Flask(__name__)
 
@@ -161,39 +162,20 @@ def process_audio():
         audio_file = request.files['audio_file']
         audio_file.save('temp_audio_file.mp3')
 
-        # Step 2: Upload the audio file to AssemblyAI
-        headers = {'authorization': ASSEMBLYAI_API_KEY}
-        with open('temp_audio_file.mp3', 'rb') as f:
-            response = requests.post(
-                'https://api.assemblyai.com/v2/upload',
-                headers=headers,
-                files={'file': f}
+        audio_file = (
+                "./temp_audio_file.mp3"
             )
-        response.raise_for_status()
-        upload_url = response.json()['upload_url']
 
-        # Step 3: Transcribe the audio file
-        transcribe_response = requests.post(
-            'https://api.assemblyai.com/v2/transcript',
-            headers=headers,
-            json={'audio_url': upload_url, 'speaker_labels': True}
+        config = aai.TranscriptionConfig(
+            speaker_labels=True,
         )
-        transcribe_response.raise_for_status()
-        transcript_id = transcribe_response.json()['id']
 
-        # Poll transcription
-        while True:
-            transcript_result = requests.get(
-                f'https://api.assemblyai.com/v2/transcript/{transcript_id}',
-                headers=headers
-            )
-            transcript_result.raise_for_status()
-            result_json = transcript_result.json()
-            if result_json['status'] == 'completed':
-                transcribed_text = result_json['text']
-                break
-            elif result_json['status'] == 'failed':
-                return jsonify({'error': 'Transcription failed'}), 500
+        transcript = aai.Transcriber().transcribe(audio_file, config)
+
+        transcribed_text=""
+
+        for utterance in transcript.utterances:
+            transcribed_text += utterance.speaker+":"+utterance.text
 
         print(transcribed_text)
 
