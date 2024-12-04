@@ -22,11 +22,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"]
 )
 
 # Paths for the Word template and output file
 TEMPLATE_PATH = "report.docx"  # Template file path
-OUTPUT_PATH = os.path.join(os.getcwd(), "tmp", "populated_report.docx")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 def process_with_gemini(transcribed_text):
@@ -226,11 +226,15 @@ async def process_audio(audio_file: UploadFile, ai_model: str = Form(...)):
         # return send_file(OUTPUT_PATH, as_attachment=True)
         # return {"message": f"File saved at {OUTPUT_PATH}"}
 
-        return FileResponse(
-            OUTPUT_PATH,
-            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            filename="generated_report.docx",
-        )
+        response = FileResponse(
+                    OUTPUT_PATH,
+                    media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    headers={
+                        "Content-Disposition": f'attachment; filename="Report_{audio_file_base}_{timestamp}.docx"'
+                    },
+                )
+        print(f"Response Headers: {response.headers}")
+        return response
     
     except Exception as e:
         return {'error': str(e)}, 500

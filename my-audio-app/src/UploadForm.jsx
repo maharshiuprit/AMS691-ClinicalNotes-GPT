@@ -46,13 +46,17 @@ const UploadForm = () => {
         }
       );
 
+      // Extract filename from Content-Disposition header
+      const contentDisposition = response.headers["content-disposition"] || response.headers["Content-Disposition"];
+
+      const fileNameMatch = contentDisposition && contentDisposition.match(/filename="(.+)"/);
+
+      const fileName = fileNameMatch ? fileNameMatch[1] : "generated_report.docx";
+
       // Create a Blob from the response
       const blob = new Blob([response.data], {
         type: response.headers["content-type"],
       });
-      const fileName = response.headers["content-disposition"]
-        ? response.headers["content-disposition"].split("filename=")[1]
-        : "generated_report.docx";
 
       // Use FileSaver to save the file
       saveAs(blob, fileName);
