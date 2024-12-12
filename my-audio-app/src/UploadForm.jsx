@@ -47,11 +47,16 @@ const UploadForm = () => {
       );
 
       // Extract filename from Content-Disposition header
-      const contentDisposition = response.headers["content-disposition"] || response.headers["Content-Disposition"];
+      const contentDisposition =
+        response.headers["content-disposition"] ||
+        response.headers["Content-Disposition"];
 
-      const fileNameMatch = contentDisposition && contentDisposition.match(/filename="(.+)"/);
+      const fileNameMatch =
+        contentDisposition && contentDisposition.match(/filename="(.+)"/);
 
-      const fileName = fileNameMatch ? fileNameMatch[1] : "generated_report.docx";
+      const fileName = fileNameMatch
+        ? fileNameMatch[1]
+        : "generated_report.docx";
 
       // Create a Blob from the response
       const blob = new Blob([response.data], {
@@ -103,6 +108,17 @@ const UploadForm = () => {
             disabled={isUploading}
           />
           <label htmlFor="gemini">Gemini</label>
+
+          <input
+            type="radio"
+            id="lmstudios"
+            name="model"
+            value="lmstudios"
+            checked={selectedModel === "lmstudios"}
+            onChange={handleModelChange}
+            disabled={isUploading}
+          />
+          <label htmlFor="lmstudios">LM-Studios</label>
         </div>
         <button type="submit" disabled={isUploading}>
           {isUploading ? "Processing..." : "Upload and Generate Report"}
