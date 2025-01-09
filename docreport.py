@@ -227,6 +227,9 @@ def flatten_data(data, parent_key='', sep='.'):
             items.append((new_key, v))
     return dict(items)
 
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the Medical Report Generator API!"}
 
 @app.post("/process-audio")
 async def process_audio(audio_file: UploadFile, ai_model: str = Form(...)):
