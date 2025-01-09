@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medical-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: medical-backend
+  template:
+    metadata:
+      labels:
+        app: medical-backend
+    spec:
+      containers:
+        - name: backend
+          image: medical-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  selector:
+    app: medical-backend
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP

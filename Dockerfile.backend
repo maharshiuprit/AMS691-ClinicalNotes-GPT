@@ -1,0 +1,22 @@
+# Dockerfile
+
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+# Update pip first (can help with more robust wheels resolution) 
+RUN python -m pip install --no-cache-dir --upgrade pip
+
+# Increase timeout & retries
+RUN pip install --no-cache-dir \
+    --default-timeout=300 \
+    --retries=10 \
+    -r requirements.txt
+
+COPY . /app
+
+EXPOSE 8000
+
+CMD ["uvicorn", "docreport:app", "--host", "0.0.0.0", "--port", "8000"]
